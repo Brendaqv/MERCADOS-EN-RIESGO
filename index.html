@@ -396,7 +396,7 @@
       <p>Datos del CENAMA 2016</p>
     </div>
     <div>
-      <div class="header-meta">Generado: <span id="gen-date"></span><br>Total de mercados: 2,612 mercados (CENAMA 2016)</div>
+      <div class="header-meta">Generado: <span id="gen-date"></span><br>Total de mercados: <span id="total-mercados">2,612</span> mercados</div>
       <button class="theme-toggle" id="theme-toggle">🌙 Modo oscuro</button>
     </div>
   </div>
@@ -785,12 +785,18 @@ function fitMapToLocation() {
 }
 
 // ---------- populate department filter ----------
-const deps = [...new Set(MARKETS.map(m => m.dep))].sort();
 const depSelect = document.getElementById('f-dep');
-deps.forEach(d => {
-  const opt = document.createElement('option'); opt.value = d; opt.textContent = d;
-  depSelect.appendChild(opt);
-});
+function refreshDepOptions() {
+  const keep = depSelect.value;
+  depSelect.innerHTML = '<option value="">Todos</option>';
+  const deps = [...new Set(MARKETS.map(m => m.dep))].sort();
+  deps.forEach(d => {
+    const opt = document.createElement('option'); opt.value = d; opt.textContent = d;
+    depSelect.appendChild(opt);
+  });
+  depSelect.value = keep;
+}
+refreshDepOptions();
 
 function updateProvinceOptions() {
   const provSelect = document.getElementById('f-prov');
@@ -1469,6 +1475,7 @@ function render() {
 }
 
 function refreshDerivedCounts() {
+  document.getElementById('total-mercados').textContent = MARKETS.length.toLocaleString('es-PE');
   document.getElementById('proyectos-count').textContent = MARKETS.filter(m => m.proyecto).length;
   document.getElementById('solicitudes-count').textContent = MARKETS.filter(m => m.solicitudes_muni).length;
   const counts = {};
@@ -1549,6 +1556,21 @@ function worstExposureFor(m) {
   if (li < 0 && lm < 0) return { nivel: null, tipo: null };
   return lm > li ? { nivel: m.susc_m, tipo: 'Movimientos en masa' } : { nivel: m.susc_i, tipo: 'Inundación' };
 }
+// Google Sheets exporta los números crudos con coma decimal (formato es-PE: "6746232,93",
+// "-5,417803"), sin separador de miles. `sheetNum` los deja listos para Number()/parseFloat();
+// `sheetNumericString` normaliza solo el string (coma -> punto) para campos que conviven con
+// texto no numérico (p.ej. "Por definir" en costo de inversión) y no deben tocarse si no calzan
+// con el patrón numérico.
+function sheetNum(v) {
+  if (v === null || v === undefined || v === '') return null;
+  const n = Number(String(v).trim().replace(',', '.'));
+  return isNaN(n) ? null : n;
+}
+function sheetNumericString(v) {
+  if (v === null || v === undefined) return v;
+  const s = String(v).trim();
+  return /^-?\d+(,\d+)?$/.test(s) ? s.replace(',', '.') : v;
+}
 function applyProyectosCUI(rows) {
   MARKETS.forEach(m => { delete m.proyecto; });
   rows.forEach(r => {
@@ -1560,9 +1582,50 @@ function applyProyectosCUI(rows) {
       entidad: r['ENTIDAD'] || null,
       asunto: r['ASUNTO'] || null,
       nivel_estudio: r['NIVEL DE ESTUDIO'] || null,
-      costo_inversion: r['COSTO DE INVERSIÓN'] || null,
+      costo_inversion: sheetNumericString(r['COSTO DE INVERSIÓN']) || null,
     };
   });
+}
+// Mercados agregados manualmente en la pestaña "Mercados" de Sheets (p.ej. mercados sin
+// censo CENAMA, como Tahuamanu) que todavía no existen en la base incluida en este archivo.
+// No se sobrescriben mercados ya existentes -- solo se agregan IDs nuevos, para no arriesgar
+// los 2,613 mercados ya cargados por un valor mal tipeado en la hoja.
+function applyMercadosNuevos(rows) {
+  let agregados = 0;
+  const omitidos = [];
+  rows.forEach(r => {
+    const id = (r['ID'] || '').trim();
+    if (!id || marketIndex[id]) return;
+    const lat = sheetNum(r['Latitud']), lon = sheetNum(r['Longitud']);
+    if (lat === null || lon === null) { omitidos.push(id || '(sin ID)'); return; }
+    const m = {
+      id, nombre: r['Nombre'] || null,
+      dep: r['Departamento'] || null, prov: r['Provincia'] || null, dist: r['Distrito'] || null,
+      ubigeo: r['UBIGEO'] || null, lat, lon,
+      meta6: r['Con Nombre Identificado (Meta 6)'] === 'Sí',
+      clasif: r['Clasificación'] || null,
+      susc_i: r['Exposición Inundación'] || null, susc_m: r['Exposición Mov. Masa'] || null,
+      riesgo_i: r['Riesgo Inundación'] || null, riesgo_m: r['Riesgo Mov. Masa'] || null,
+      emerg: r['Emergencia Declarada'] === 'Sí',
+      tipo_mercado: r['Tipo de Mercado'] || null,
+      area_terreno: sheetNum(r['Área Terreno (m²)']), area_construida: sheetNum(r['Área Construida (m²)']),
+      niveles: sheetNum(r['N° de Niveles']), propietario: r['Propietario'] || null,
+      sector: r['Tipo de Propiedad'] || null, administrador: r['Administrado Por'] || null,
+      puestos_fijos: sheetNum(r['N° de Puestos Fijos']), socios: sheetNum(r['N° de Socios/Titulares']),
+      pared: r['Material de Paredes'] || null, piso: r['Material de Piso'] || null, techo: r['Material de Techo'] || null,
+      fuente: r['Fuente (si no proviene del censo CENAMA)'] || 'Agregado manualmente en Google Sheets (fuera del censo CENAMA 2016)',
+    };
+    MARKETS.push(m);
+    marketIndex[id] = m;
+    agregados++;
+  });
+  if (agregados) {
+    refreshDepOptions();
+    updateProvinceOptions(); document.getElementById('f-prov').value = state.prov;
+    updateDistrictOptions(); document.getElementById('f-dist').value = state.dist;
+    console.log(`Mercados nuevos agregados desde Google Sheets: ${agregados}`);
+  }
+  if (omitidos.length) console.warn('Filas de "Mercados" sin Latitud/Longitud válida, no se pudieron ubicar:', omitidos);
 }
 function applySolicitudesMunicipales(rows) {
   MARKETS.forEach(m => { delete m.solicitudes_muni; });
@@ -1612,11 +1675,13 @@ function applyIntervenciones(rows) {
 }
 async function loadExternalData() {
   try {
-    const [proyRows, solRows, intRows] = await Promise.all([
+    const [mercRows, proyRows, solRows, intRows] = await Promise.all([
+      fetchSheetTab('Mercados'),
       fetchSheetTab('Proyectos_CUI'),
       fetchSheetTab('Solicitudes_Municipales'),
       fetchSheetTab('Intervenciones_Mercados'),
     ]);
+    applyMercadosNuevos(mercRows);
     applyProyectosCUI(proyRows);
     applySolicitudesMunicipales(solRows);
     applyIntervenciones(intRows);
@@ -1631,5 +1696,4 @@ loadExternalData();
 </script>
 </body>
 </html>
-
 
