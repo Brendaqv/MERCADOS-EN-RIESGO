@@ -393,7 +393,7 @@
   <div class="header-inner">
     <div>
       <h1>Visor de Mercados de Abastos</h1>
-      <p>Datos del CENAMA 2016</p>
+      <p>Georrferenciación a partir del CENAMA 2016</p>
     </div>
     <div>
       <div class="header-meta">Generado: <span id="gen-date"></span><br>Total de mercados: <span id="total-mercados">2,612</span> mercados</div>
@@ -406,7 +406,7 @@
 
   <div class="theme-tabs">
     <button class="theme-tab active" data-theme="riesgo" id="tab-riesgo">Mercados en Riesgo FEN 2026</button>
-    <button class="theme-tab" data-theme="intervenciones" id="tab-intervenciones">Solicitudes de intervenciones</button>
+    <button class="theme-tab" data-theme="intervenciones" id="tab-intervenciones">Solicitud de Intervenciones</button>
   </div>
 
   <div class="filter-bar">
@@ -432,16 +432,15 @@
 
       <div class="card int-info-card">
         <div class="layers-card-title">Mercados en Riesgo FEN 2026</div>
-        <p>Estudio de Escenarios de Riesgo ante Lluvias Intensas asociadas al Fenómeno El Niño, elaborado según la metodología del CENEPRED.</p>
+        <p>Según Estudio de Escenarios de Riesgo ante Lluvias Intensas asociadas al Fenómeno El Niño, elaborado por CENEPRED.</p>
       </div>
 
       <div class="card layers-card">
-        <div class="layers-card-title">Capas del mapa</div>
 
         <details class="layer-block">
           <summary class="layer-summary">
             <svg class="chevron" width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <span class="layer-name">Situación del mercado de abastos ante inundaciones o movimientos en masa</span>
+            <span class="layer-name">Nivel de exposición ante inundaciones o movimientos en masa</span>
           </summary>
           <div class="layer-body">
             <div class="filter-field" style="margin-bottom:12px;">
@@ -465,27 +464,26 @@
               <label class="ckbox">
                 <input type="checkbox" data-layer="susceptible_alto">
                 <span class="box"></span>
-                EXPUESTOS A NIVEL ALTO
+                Nivel Alto
               </label>
               <label class="ckbox">
                 <input type="checkbox" data-layer="susceptible_muyalto">
-                <span class="box"></span>
-                EXPUESTOS A NIVEL MUY ALTO
+               Nivel Muy Alto
               </label>
               <label class="ckbox">
                 <input type="checkbox" data-layer="riesgo_alto">
                 <span class="box"></span>
-                EN DISTRITO CON RIESGO ALTO
+                en Distrito con Riesgo Alto
               </label>
               <label class="ckbox">
                 <input type="checkbox" data-layer="riesgo_muyalto">
                 <span class="box"></span>
-                EN DISTRITO CON RIESGO MUY ALTO
+               en Distrito con Riesgo Muy Alto
               </label>
               <label class="ckbox">
                 <input type="checkbox" data-layer="emergencia">
                 <span class="box"></span>
-                EN DISTRITO DECLARADO EN EMERGENCIA
+                en Distrito declarado en Emergencia
               </label>
             </div>
           </div>
@@ -494,7 +492,7 @@
         <details class="layer-block">
           <summary class="layer-summary">
             <svg class="chevron" width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <span class="layer-name">Proyectos con CUI solicitados por municipalidades </span>
+            <span class="layer-name">Solicitudes de proyectos priorizados </span>
             <span class="layer-count"><span id="proyectos-count">0</span> mercados</span>
           </summary>
           <div class="layer-body">
